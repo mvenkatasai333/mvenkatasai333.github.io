@@ -1,0 +1,45 @@
+services:
+  couchdb:
+    expose:
+      - 5984
+    image: treehouses/couchdb:2.3.1
+    ports:
+      - "2300:5984"
+    volumes:
+      - "~/srv/planet/conf:/opt/couchdb/etc/local.d"
+      - "~/srv/planet/data:/opt/couchdb/data"
+      - "~/srv/planet/log:/opt/couchdb/var/log"
+  chatapi:
+    expose:
+      - 5050
+    image: treehouses/planet:chatapi-local
+    depends_on:
+      - couchdb
+    ports:
+      - "5050:5000"
+    environment:
+      - COUCHDB_HOST=http://couchdb:5984
+      - SERVE_PORT=5000
+  db-init:
+    image: treehouses/planet:db-init-local
+    depends_on:
+      - couchdb
+    environment:
+      - COUCHDB_HOST=http://couchdb:5984
+  planet:
+    image: treehouses/planet:local
+    ports:
+      - "3300:80"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "~/srv/planet/pwd:/usr/share/nginx/html/credentials"
+      - "~/srv/planet/fs:/usr/share/nginx/html/fs"
+      #- "~/srv/planet/conf.d:/etc/nginx/conf.d"
+    environment:
+      - MULTIPLE_IPS=true
+      - HOST_PROTOCOL=http
+      - DB_HOST=127.0.0.1
+      - DB_PORT=2300
+      - CENTER_ADDRESS=planet.earth.ole.org/db
+    depends_on:
+      - couchdb
